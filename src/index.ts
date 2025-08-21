@@ -1,4 +1,4 @@
-import { serve, ServerWebSocket } from "bun";
+import { serve, type ServerWebSocket } from "bun";
 import { connectDB } from "./db";
 import { createBoard, getBoardByShortId, updateBoardContent } from "./board";
 
@@ -17,7 +17,7 @@ serve({
     port,
 
     websocket: {
-        open(ws: ServerWebSocket<WSData>, _req: Request) {
+        open(ws: ServerWebSocket<WSData>) {
             // El boardId viene desde upgrade(req, { data })
             if (ws.data?.boardId) {
                 clients.add(ws);

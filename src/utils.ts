@@ -5,7 +5,7 @@ export const generateShortId= (length = 8): string => {
     const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
     let out = "";
     for (let i = 0; i < length; i++) {
-        out += alphabet[bytes[i] % alphabet.length];
+        out += alphabet[bytes[i]! % alphabet.length];
     }
     return out;
 }
