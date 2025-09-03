@@ -66,24 +66,31 @@ serve({
             });
         }
 
-        // WebSocket upgrade: /ws/:shortId
+
+        // WebSocket upgrade
         if (url.pathname.startsWith("/ws/")) {
-            const shortId = url.pathname.split("/")[2] || "";
+            const segments = url.pathname.split("/").filter(Boolean);
+            const shortId = segments[1]; // segundo segmento después de /ws
+            if (!shortId) {
+                return new Response("Board ID missing", { status: 404 });
+            }
+
             const board = await getBoardByShortId(shortId);
 
-            if (!board) {
-                return new Response("Board not found", { status: 404 });
-            }
 
-            // No respondas con socket aquí, solo upgrade
-            const upgraded = server.upgrade(req, {
+            if (!board) return new Response("Board not found", { status: 404 });
+
+            server.upgrade(req, {
                 data: { boardId: board.id, initialContent: board.content },
             });
+            return;
+        }
 
-            if (!upgraded) {
-                return new Response("WebSocket upgrade failed", { status: 500 });
-            }
-            return; // Importante: terminar aquí
+
+        if (url.pathname === "/shareboard" || url.pathname === "/shareboard/") {
+            return new Response(Bun.file("./public/index.html"), {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+            });
         }
 
         // Favicon opcional (evita 404 ruidoso)

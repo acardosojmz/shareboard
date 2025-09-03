@@ -4,14 +4,20 @@ const editor = document.getElementById("editor");
 let ws;
 let boardId;
 let typingTimeout;
-const RELAY_MS = 250; // puedes mover a 200/300
+const RELAY_MS = 250; // puedes ajustar 200/300
 
+// Determinar basePath según entorno
+const basePath = location.hostname === "localhost" ? "" : "/shareboard";
+
+// Crear un nuevo board
 newBtn.onclick = async () => {
     try {
-        const res = await fetch("/api/new-board", { method: "POST" });
+        const res = await fetch(`${basePath}/api/new-board`, { method: "POST" });
         const json = await res.json();
         boardId = json.id;
-        history.replaceState(null, "", `/${boardId}`);
+
+        // Actualizar URL correctamente
+        history.replaceState(null, "", `${basePath}/${boardId}`);
         connectWebSocket();
     } catch (e) {
         alert("No se pudo crear el board");
@@ -23,18 +29,17 @@ function connectWebSocket() {
     if (!boardId) return alert("Crea un board primero.");
 
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${proto}://${location.host}/ws/${boardId}`);
+    ws = new WebSocket(`${proto}://${location.host}${basePath}/ws/${boardId}`);
 
     ws.onopen = () => console.log("🔌 WS conectado");
 
     ws.onmessage = (event) => {
-        // Actualiza SIEMPRE al recibir (simple: último que escribe gana)
         editor.value = event.data;
     };
 
     ws.onclose = (e) => {
         console.log("WS desconectado:", e.reason || e.code);
-        // Reintento simple
+        // Reconectar automáticamente
         setTimeout(() => {
             if (document.visibilityState !== "hidden") connectWebSocket();
         }, 1000);
@@ -55,9 +60,15 @@ editor.addEventListener("input", () => {
 
 // Cargar según URL actual
 window.addEventListener("load", () => {
-    const path = location.pathname;
-    if (path.length > 1) {
-        boardId = path.slice(1);
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+
+    if (basePath && pathSegments[0] === basePath.replace("/", "") && pathSegments[1]) {
+        // Producción: /shareboard/:id
+        boardId = pathSegments[1];
+        connectWebSocket();
+    } else if (!basePath && pathSegments[0]) {
+        // Localhost: /:id
+        boardId = pathSegments[0];
         connectWebSocket();
     }
 });
